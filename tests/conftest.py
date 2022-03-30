@@ -1,11 +1,12 @@
 import time
 
 from brownie import (
-    StrategyOxdStakingOptimizer,
+    StrategybveOxdOxdStakingOptimizer,
     TheVault,
     interface,
     MockStrategy,
     accounts,
+    chain
 )
 from _setup.config import (
     WANT, 
@@ -94,32 +95,6 @@ def randomUser():
 def badgerTree():
     return accounts[8]
 
-# Deploy mock vault
-@pytest.fixture
-def bveOXD(oxd, deployer, strategist, keeper, guardian, governance, badgerTree):
-    vault = TheVault.deploy({"from": deployer})
-    vault.initialize(
-        oxd,
-        governance,
-        keeper,
-        guardian,
-        governance,
-        strategist,
-        badgerTree,
-        "",
-        "",
-        [
-            PERFORMANCE_FEE_GOVERNANCE,
-            PERFORMANCE_FEE_STRATEGIST,
-            WITHDRAWAL_FEE,
-            MANAGEMENT_FEE,
-        ],
-    )
-    strategy = MockStrategy.deploy({"from": deployer})
-    strategy.initialize(vault)
-
-    vault.setStrategy(strategy, {"from": governance})
-    return vault
 
 # Deploy mock vault
 @pytest.fixture
@@ -161,7 +136,6 @@ def deployed(
     proxyAdmin,
     randomUser,
     badgerTree,
-    bveOXD,
     bOxSolid
 ):
     """
@@ -191,11 +165,15 @@ def deployed(
     vault.setStrategist(deployer, {"from": governance})
     # NOTE: TheVault starts unpaused
 
-    strategy = StrategyOxdStakingOptimizer.deploy({"from": deployer})
-    strategy.initialize(vault, [want, bveOXD, bOxSolid])
+    strategy = StrategybveOxdOxdStakingOptimizer.deploy({"from": deployer})
+    strategy.initialize(vault, [want, bOxSolid])
     # NOTE: Strategy starts unpaused
 
     vault.setStrategy(strategy, {"from": governance})
+
+    # Fastforward a few hours for emissions to kick in
+    chain.sleep(3600 * 24) # 1 day
+    chain.mine(50)
 
     return DotMap(
         deployer=deployer,
@@ -222,7 +200,6 @@ def vault(deployed):
 @pytest.fixture
 def strategy(deployed):
     return deployed.strategy
-
 
 
 @pytest.fixture
