@@ -14,7 +14,7 @@ import "../interfaces/oxd/IUserProxy.sol";
 import "../interfaces/oxd/IOxLens.sol";
 import "../interfaces/oxd/IMultiRewards.sol";
 
-contract bveOxdOxdStakingOptimizer is BaseStrategy {
+contract StrategybveOxdOxdStakingOptimizer is BaseStrategy {
     using SafeMathUpgradeable for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -75,7 +75,7 @@ contract bveOxdOxdStakingOptimizer is BaseStrategy {
 
     /// @dev Return the name of the strategy
     function getName() external pure override returns (string memory) {
-        return "bveOxdOxdStakingOptimizer";
+        return "StrategybveOxdOxdStakingOptimizer";
     }
 
     /// @dev Return a list of protected tokens
