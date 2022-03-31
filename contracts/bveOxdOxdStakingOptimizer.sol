@@ -12,7 +12,7 @@ import {IVault} from "../interfaces/badger/IVault.sol";
 
 import "../interfaces/oxd/IUserProxy.sol";
 import "../interfaces/oxd/IOxLens.sol";
-import "../interfaces/oxd/IMultiRewards.sol";    
+import "../interfaces/oxd/IMultiRewards.sol";
 
 contract StrategybveOxdOxdStakingOptimizer is BaseStrategy {
     using SafeMathUpgradeable for uint256;
@@ -166,7 +166,6 @@ contract StrategybveOxdOxdStakingOptimizer is BaseStrategy {
             // Add liquidity to the bveOXD/OXD LP Volatile pool
             uint256 bveOXDIn = BVEOXD.balanceOf(address(this));
             uint256 oxdIn = OXD.balanceOf(address(this));
-            // revert(StringLib.toString(abi.encodePacked("bveOXDIn: ", StringLib.toString(bveOXDIn), " oxdIn: ", StringLib.toString(oxdIn))));
             SOLIDLY_ROUTER.addLiquidity(
                 address(BVEOXD),
                 address(OXD),
