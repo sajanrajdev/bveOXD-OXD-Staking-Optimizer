@@ -12,7 +12,7 @@ import {IVault} from "../interfaces/badger/IVault.sol";
 
 import "../interfaces/oxd/IUserProxy.sol";
 import "../interfaces/oxd/IOxLens.sol";
-import "../interfaces/oxd/IMultiRewards.sol";
+import "../interfaces/oxd/IMultiRewards.sol";    
 
 contract StrategybveOxdOxdStakingOptimizer is BaseStrategy {
     using SafeMathUpgradeable for uint256;
@@ -34,7 +34,7 @@ contract StrategybveOxdOxdStakingOptimizer is BaseStrategy {
     IVault public bveOXD;
     IVault public bOxSolid;
 
-    // slippage tolerance 98% (divide by MAX_BPS) - Changeable by Governance or Strategist
+    // slippage tolerance 95% (divide by MAX_BPS) - Changeable by Governance or Strategist
     uint256 public sl;
 
     // ===== Token Registry =====
@@ -61,8 +61,8 @@ contract StrategybveOxdOxdStakingOptimizer is BaseStrategy {
         // Get staking OxDAO Staking Contract for pool
         stakingAddress = IOxLens(oxLens).stakingRewardsBySolidPool(want);
 
-        // Set default slippage value (98%)
-        sl = 9_800;
+        // Set default slippage value (95%)
+        sl = 9_500;
 
         // Token approvals
         IERC20Upgradeable(want).safeApprove(userProxyInterface, type(uint256).max);
@@ -166,6 +166,7 @@ contract StrategybveOxdOxdStakingOptimizer is BaseStrategy {
             // Add liquidity to the bveOXD/OXD LP Volatile pool
             uint256 bveOXDIn = BVEOXD.balanceOf(address(this));
             uint256 oxdIn = OXD.balanceOf(address(this));
+            // revert(StringLib.toString(abi.encodePacked("bveOXDIn: ", StringLib.toString(bveOXDIn), " oxdIn: ", StringLib.toString(oxdIn))));
             SOLIDLY_ROUTER.addLiquidity(
                 address(BVEOXD),
                 address(OXD),
