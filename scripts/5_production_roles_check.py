@@ -1,5 +1,5 @@
-from brownie import network, BadgerRegistry, Controller, interface, web3
-from config import REGISTRY
+from brownie import network, interface, web3
+from _setup.config import REGISTRY
 from helpers.constants import AddressZero
 from rich.console import Console
 from tabulate import tabulate
@@ -10,7 +10,7 @@ DEFAULT_ADMIN_ROLE = (
     "0x0000000000000000000000000000000000000000000000000000000000000000"
 )
 
-tableHead = ["Role", "MemberCount", "Address"]
+table_head = ["Role", "MemberCount", "Address"]
 
 
 def main():
@@ -19,25 +19,22 @@ def main():
     the proxyAdminTimelock address on the same registry. How to run:
 
     1. Add all keys to check paired to the key of the expected DEFAULT_ADMIN_ROLE to the
-       'keysWithAdmins' array.
+       'keys_with_admins' array.
 
     2. Add an array with all the expected roles belonging to each one of the keyed contracts
        added on the previous step to the 'roles' array. The index of the key must match the index
        of its roles array.
 
-    3. Additionally, the script will check that the controller's governance and strategist match
-       the Badger's production configuration addresses.
-
-    4. Run the script and analyze the printed results.
+    3. Run the script and analyze the printed results.
     """
 
     console.print("You are using the", network.show_active(), "network")
 
     # Get production registry
-    registry = BadgerRegistry.at(REGISTRY)
+    registry = interface.IBadgerRegistry(REGISTRY)
 
     # NOTE: Add keys to check paired to the key of their expected DEFAULT_ADMIN_ROLE:
-    keysWithAdmins = [
+    keys_with_admins = [
         ["badgerTree", "governance"],
         ["BadgerRewardsManager", "governance"],
         ["rewardsLogger", "governance"],
@@ -58,14 +55,13 @@ def main():
         ["DEFAULT_ADMIN_ROLE", "EARNER_ROLE", "HARVESTER_ROLE", "TENDER_ROLE"],
     ]
 
-    assert len(keysWithAdmins) == len(roles)
+    assert len(keys_with_admins) == len(roles)
 
-    check_roles(registry, keysWithAdmins, roles)
-    check_controller_roles(registry)
+    check_roles(registry, keys_with_admins, roles)
 
 
-def check_roles(registry, keysWithAdmins, roles):
-    for key in keysWithAdmins:
+def check_roles(registry, keys_with_admins, roles):
+    for key in keys_with_admins:
         console.print("[blue]Checking roles for[/blue]", key[0])
 
         # Get contract address
@@ -76,23 +72,23 @@ def check_roles(registry, keysWithAdmins, roles):
             console.print("[red]Key not found on registry![/red]")
             continue
 
-        tableData = []
+        table_data = []
 
-        accessControl = interface.IAccessControl(contract)
+        access_control = interface.IAccessControl(contract)
 
-        keyRoles = roles[keysWithAdmins.index(key)]
+        keyRoles = roles[keys_with_admins.index(key)]
         hashes = get_roles_hashes(keyRoles)
 
         for role in keyRoles:
-            roleHash = hashes[keyRoles.index(role)]
-            roleMemberCount = accessControl.getRoleMemberCount(roleHash)
-            if roleMemberCount == 0:
-                tableData.append([role, "-", "No Addresses found for this role"])
+            role_hash = hashes[keyRoles.index(role)]
+            role_member_count = access_control.getRoleMemberCount(role_hash)
+            if role_member_count == 0:
+                table_data.append([role, "-", "No Addresses found for this role"])
             else:
-                for memberNumber in range(roleMemberCount):
-                    memberAddress = accessControl.getRoleMember(roleHash, memberNumber)
+                for member_number in range(role_member_count):
+                    member_address = access_control.getRoleMember(role_hash, member_number)
                     if role == "DEFAULT_ADMIN_ROLE":
-                        if memberAddress == admin:
+                        if member_address == admin:
                             console.print(
                                 "[green]DEFAULT_ADMIN_ROLE matches[/green]",
                                 key[1],
@@ -104,45 +100,9 @@ def check_roles(registry, keysWithAdmins, roles):
                                 key[1],
                                 admin,
                             )
-                    tableData.append([role, memberNumber, memberAddress])
+                    table_data.append([role, member_number, member_address])
 
-        print(tabulate(tableData, tableHead, tablefmt="grid"))
-
-
-def check_controller_roles(registry):
-    console.print("[blue]Checking roles for Controller...[/blue]")
-
-    controllerAddress = registry.get("controller")
-    governance = registry.get("governance")
-    governanceTimelock = registry.get("governanceTimelock")
-
-    assert controllerAddress != AddressZero
-    assert governance != AddressZero
-    assert governanceTimelock != AddressZero
-
-    controller = Controller.at(controllerAddress)
-
-    # Check governance
-    if controller.governance() == governanceTimelock:
-        console.print(
-            "[green]controller.governance() matches governanceTimelock -[/green]",
-            governanceTimelock,
-        )
-    else:
-        console.print(
-            "[red]controller.governance() doesn't match governanceTimelock -[/red]",
-            controller.governance(),
-        )
-    # Check strategist
-    if controller.strategist() == governance:
-        console.print(
-            "[green]controller.strategist() matches governance -[/green]", governance
-        )
-    else:
-        console.print(
-            "[red]controller.strategist() doesn't match governance -[/red]",
-            controller.strategist(),
-        )
+        print(tabulate(table_data, table_head, tablefmt="grid"))
 
 
 def get_roles_hashes(roles):

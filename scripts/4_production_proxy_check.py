@@ -1,5 +1,5 @@
-from brownie import network, BadgerRegistry, Controller, TheVault, web3
-from config import REGISTRY
+from brownie import interface, network, TheVault, web3
+from _setup.config import REGISTRY
 from helpers.constants import AddressZero
 from rich.console import Console
 
@@ -25,19 +25,18 @@ def main():
     console.print("You are using the", network.show_active(), "network")
 
     # Get production registry
-    registry = BadgerRegistry.at(REGISTRY)
+    registry = interface.IBadgerRegistry(REGISTRY)
 
     # Get proxyAdminTimelock
-    proxyAdmin = registry.get("proxyAdminTimelock")
-    assert proxyAdmin != AddressZero
-    console.print("[cyan]proxyAdminTimelock:[/cyan]", proxyAdmin)
+    proxy_admin = registry.get("proxyAdminTimelock")
+    assert proxy_admin != AddressZero
+    console.print("[cyan]proxyAdminTimelock:[/cyan]", proxy_admin)
 
     # NOTE: Add all existing keys from your network's registry. For example:
     keys = [
         "governance",
         "guardian",
         "keeper",
-        "controller",
         "badgerTree",
         "devGovernance",
         "paymentsGovernance",
@@ -53,18 +52,18 @@ def main():
     authors = ["0xee8b29aa52dd5ff2559da2c50b1887adee257556"]
 
     # NOTE: Add the keys to all proxyAdmins from your network's registry paired to their owner
-    proxyAdminOwners = [
+    proxy_admin_owners = [
         ["proxyAdminTimelock", "governanceTimelock"],
         ["proxyAdminDev", "devGovernance"],
         ["proxyAdminDfdBadger", "dfdBadgerSharedGovernance"],
     ]
 
-    check_by_keys(registry, proxyAdmin, keys)
-    check_vaults_and_strategies(registry, proxyAdmin, authors)
-    check_proxy_admin_owners(proxyAdminOwners, registry)
+    check_by_keys(registry, proxy_admin, keys)
+    check_vaults_and_strategies(registry, proxy_admin, authors)
+    check_proxy_admin_owners(proxy_admin_owners, registry)
 
 
-def check_by_keys(registry, proxyAdmin, keys):
+def check_by_keys(registry, proxy_admin, keys):
     console.print("[blue]Checking proxyAdmins by key...[/blue]")
     # Check the proxyAdmin of the different proxy contracts
     for key in keys:
@@ -72,17 +71,17 @@ def check_by_keys(registry, proxyAdmin, keys):
         if proxy == AddressZero:
             console.print(key, ":[red] key doesn't exist on the registry![/red]")
             continue
-        check_proxy_admin(proxy, proxyAdmin, key)
+        check_proxy_admin(proxy, proxy_admin, key)
 
 
-def check_vaults_and_strategies(registry, proxyAdmin, authors):
+def check_vaults_and_strategies(registry, proxy_admin, authors):
     console.print("[blue]Checking proxyAdmins from vaults and strategies...[/blue]")
 
-    vaultStatus = [0, 1, 2]
+    vault_status = [0, 1, 2]
 
     vaults = []
     strategies = []
-    stratNames = []
+    strat_names = []
 
     # get vaults by author
     for author in authors:
@@ -90,21 +89,18 @@ def check_vaults_and_strategies(registry, proxyAdmin, authors):
         vaults += registry.getVaults("v2", author)
 
     # Get promoted vaults
-    for status in vaultStatus:
+    for status in vault_status:
         vaults += registry.getFilteredProductionVaults("v1", status)
         vaults += registry.getFilteredProductionVaults("v2", status)
 
     # Get strategies from vaults and check vaults' proxyAdmins
     for vault in vaults:
         try:
-            vaultContract = TheVault.at(vault)
-            # get Controller
-            controller = Controller.at(vaultContract.controller())
-            strategies.append(controller.strategies(vaultContract.token()))
-            stratNames.append(vaultContract.name().replace("Badger Sett ", "Strategy "))
+            vault_contract = TheVault.at(vault)
+            strategies.append(vault_contract.strategy())
+            strat_names.append(vault_contract.name().replace("Badger Sett ", "Strategy "))
             # Check vault proxyAdmin
-
-            check_proxy_admin(vault, proxyAdmin, vaultContract.name())
+            check_proxy_admin(vault, proxy_admin, vault_contract.name())
         except Exception as error:
             print("Something went wrong")
             print(error)
@@ -112,13 +108,13 @@ def check_vaults_and_strategies(registry, proxyAdmin, authors):
     for strat in strategies:
         try:
             # Check strategies' proxyAdmin
-            check_proxy_admin(strat, proxyAdmin, stratNames[strategies.index(strat)])
+            check_proxy_admin(strat, proxy_admin, strat_names[strategies.index(strat)])
         except Exception as error:
             print("Something went wrong")
             print(error)
 
 
-def check_proxy_admin(proxy, proxyAdmin, key):
+def check_proxy_admin(proxy, proxy_admin, key):
     # Get proxyAdmin address form the proxy's ADMIN_SLOT
     val = web3.eth.getStorageAt(proxy, ADMIN_SLOT).hex()
     address = "0x" + val[26:66]
@@ -126,40 +122,40 @@ def check_proxy_admin(proxy, proxyAdmin, key):
     # Check differnt possible scenarios
     if address == AddressZero:
         console.print(key, ":[red] admin not found on slot (GnosisSafeProxy?)[/red]")
-    elif address != proxyAdmin:
+    elif address != proxy_admin:
         console.print(
             key, ":[red] admin is different to proxyAdminTimelock[/red] - ", address
         )
     else:
-        assert address == proxyAdmin
+        assert address == proxy_admin
         console.print(key, ":[green] admin matches proxyAdminTimelock![/green]")
 
 
-def check_proxy_admin_owners(proxyAdminOwners, registry):
+def check_proxy_admin_owners(proxy_admin_owners, registry):
     console.print("[blue]Checking proxyAdmins' owners...[/blue]")
 
-    for adminOwnerPair in proxyAdminOwners:
-        proxyAdmin = registry.get(adminOwnerPair[0])
-        owner = registry.get(adminOwnerPair[1])
+    for admin_owner_pair in proxy_admin_owners:
+        proxy_admin = registry.get(admin_owner_pair[0])
+        owner = registry.get(admin_owner_pair[1])
         # Get proxyAdmin's owner address from slot 0
-        val = web3.eth.getStorageAt(proxyAdmin, 0).hex()
+        val = web3.eth.getStorageAt(proxy_admin, 0).hex()
         address = "0x" + val[26:66]
 
         # Check differnt possible scenarios
         if address == AddressZero:
-            console.print(adminOwnerPair[0], ":[red] no address found at slot 0![/red]")
+            console.print(admin_owner_pair[0], ":[red] no address found at slot 0![/red]")
         elif address != owner:
             console.print(
-                adminOwnerPair[0],
+                admin_owner_pair[0],
                 ":[red] owner is different to[/red]",
-                adminOwnerPair[1],
+                admin_owner_pair[1],
                 "-",
                 address,
             )
         else:
             assert address == owner
             console.print(
-                adminOwnerPair[0],
+                admin_owner_pair[0],
                 ":[green] owner matches[/green]",
-                adminOwnerPair[1],
+                admin_owner_pair[1],
             )
