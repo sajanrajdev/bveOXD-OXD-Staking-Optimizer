@@ -34,7 +34,8 @@ def test_are_you_trying(deployer, vault, strategy, want, governance):
     # Confirm that userProxy has been generated after first deposit
     assert strategy.getUserProxy() != AddressZero
 
-    chain.sleep(10000 * 13)  # Mine so we get some interest
+    chain.sleep(100000 * 13)  # Mine so we get some interest
+    chain.mine(1)  # Mine so we get some interest
 
     ## TEST 1: Does the want get used in any way?
     assert want.balanceOf(vault) == depositAmount - available
@@ -47,6 +48,11 @@ def test_are_you_trying(deployer, vault, strategy, want, governance):
 
     # Use this if it should invest all
     assert want.balanceOf(strategy) == 0
+
+    # Check that rewards have been earned
+    # stakingContract = interface.IMultiRewards(strategy.stakingAddress())
+    print("Ratio:", strategy.getSolidlyPoolRatio(strategy.OXD(), strategy.BVEOXD(), False))
+    print("Earned:", strategy.balanceOfRewards())
 
     ## TEST 2: Is the Harvest profitable?
     harvest = strategy.harvest({"from": governance})

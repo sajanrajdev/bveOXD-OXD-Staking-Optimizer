@@ -70,7 +70,7 @@ class StrategyResolver(StrategyCoreResolver):
                 "bOxSolid", "strategist"
             )
 
-        assert event["token"] == self.manager.strategy.bBveOxd_Oxd()
+        assert event["token"] == self.manager.strategy.bOxSolid()
         assert event["amount"] == after.balances(
             "bOxSolid", "badgerTree"
         ) - before.balances("bOxSolid", "badgerTree")

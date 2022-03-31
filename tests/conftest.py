@@ -171,10 +171,6 @@ def deployed(
 
     vault.setStrategy(strategy, {"from": governance})
 
-    # Fastforward a few hours for emissions to kick in
-    chain.sleep(3600 * 24) # 1 day
-    chain.mine(50)
-
     return DotMap(
         deployer=deployer,
         vault=vault,

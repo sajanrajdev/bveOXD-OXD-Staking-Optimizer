@@ -85,7 +85,9 @@ def test_strategy_action_permissions(deployer, vault, strategy, want, keeper):
     # withdrawToVault onlyVault
     for actor in actorsToCheck:
         if actor == strategy.governance() or actor == strategy.strategist():
+            chain.snapshot()
             vault.withdrawToVault({"from": actor})
+            chain.revert()
         else:
             with brownie.reverts("onlyGovernanceOrStrategist"):
                 vault.withdrawToVault({"from": actor})
@@ -98,7 +100,9 @@ def test_strategy_action_permissions(deployer, vault, strategy, want, keeper):
     # withdrawOther _onlyNotProtectedTokens
     for actor in actorsToCheck:
         if actor == strategy.governance() or actor == strategy.strategist():
+            chain.snapshot()
             vault.sweepExtraToken(vault, {"from": actor})
+            chain.revert()
         else:
             with brownie.reverts("onlyGovernanceOrStrategist"):
                 vault.sweepExtraToken(vault, {"from": actor})
