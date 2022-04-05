@@ -3,16 +3,16 @@ import time
 from brownie import (
     accounts,
     network,
-    MyStrategy,
+    StrategybveOxdOxdStakingOptimizer,
     TheVault,
     AdminUpgradeabilityProxy,
     interface,
 )
 
 from _setup.config import (
+    BOX_SOLID,
     WANT, 
     REGISTRY,
-
     PERFORMANCE_FEE_GOVERNANCE,
     PERFORMANCE_FEE_STRATEGIST,
     WITHDRAWAL_FEE,
@@ -45,10 +45,10 @@ def main():
     registry = interface.IBadgerRegistry(REGISTRY)
 
     strategist = registry.get("governance")
-    badgerTree = registry.get("badgerTree")
+    badger_tree = registry.get("badgerTree")
     guardian = registry.get("guardian")
     keeper = registry.get("keeper")
-    proxyAdmin = registry.get("proxyAdminTimelock")
+    proxy_admin = registry.get("proxyAdminTimelock")
 
     name = "FTM STRAT" ## In vaults 1.5 it's the full name
     symbol = "bFRM-STrat" ## e.g The full symbol (remember to add symbol from want)
@@ -56,7 +56,7 @@ def main():
     assert strategist != AddressZero
     assert guardian != AddressZero
     assert keeper != AddressZero
-    assert proxyAdmin != AddressZero
+    assert proxy_admin != AddressZero
     assert name != "Name Prefix Here"
     assert symbol != "bveSymbolHere"
 
@@ -66,18 +66,22 @@ def main():
         keeper,
         guardian,
         dev.address,
-        badgerTree,
-        proxyAdmin,
+        badger_tree,
+        proxy_admin,
         name,
         symbol,
         dev
     )
 
+    # Specific to your strategy 
+    want_config = [WANT, BOX_SOLID]
+
     # Deploy Strategy
     strategy = deploy_strategy(
         vault,
-        proxyAdmin,
-        dev
+        proxy_admin,
+        dev,
+        want_config
     )
 
     dev_setup = vault.setStrategy(strategy, {"from": dev})
@@ -85,7 +89,7 @@ def main():
     
 
 
-def deploy_vault(governance, keeper, guardian, strategist, badgerTree, proxyAdmin, name, symbol, dev):
+def deploy_vault(governance, keeper, guardian, strategist, badger_tree, proxy_admin, name, symbol, dev):
     args = [
         WANT,
         governance,
@@ -93,7 +97,7 @@ def deploy_vault(governance, keeper, guardian, strategist, badgerTree, proxyAdmi
         guardian,
         governance,
         strategist,
-        badgerTree,
+        badger_tree,
         name,
         symbol,
         [
@@ -112,7 +116,7 @@ def deploy_vault(governance, keeper, guardian, strategist, badgerTree, proxyAdmi
 
     vault_proxy = AdminUpgradeabilityProxy.deploy(
         vault_logic,
-        proxyAdmin,
+        proxy_admin,
         vault_logic.initialize.encode_input(*args),
         {"from": dev}
     )
@@ -128,22 +132,22 @@ def deploy_vault(governance, keeper, guardian, strategist, badgerTree, proxyAdmi
 
 
 def deploy_strategy(
-     vault, proxyAdmin, dev
+     vault, proxy_admin, dev, want_config
 ):
 
     args = [
         vault,
-        [WANT]
+        want_config
     ]
 
     print("Strategy Arguments: ", args)
 
-    strat_logic = MyStrategy.deploy({"from": dev})
+    strat_logic = StrategybveOxdOxdStakingOptimizer.deploy({"from": dev})
     time.sleep(sleep_between_tx)
 
     strat_proxy = AdminUpgradeabilityProxy.deploy(
         strat_logic,
-        proxyAdmin,
+        proxy_admin,
         strat_logic.initialize.encode_input(*args),
         {"from": dev}
     )
@@ -151,7 +155,7 @@ def deploy_strategy(
 
     ## We delete from deploy and then fetch again so we can interact
     AdminUpgradeabilityProxy.remove(strat_proxy)
-    strat_proxy = MyStrategy.at(strat_proxy.address)
+    strat_proxy = StrategybveOxdOxdStakingOptimizer.at(strat_proxy.address)
 
     console.print("[green]Strategy was deployed at: [/green]", strat_proxy.address)
 

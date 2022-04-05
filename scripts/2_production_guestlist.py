@@ -31,10 +31,10 @@ def main():
     """
 
     # NOTE: Input your vault address and guestlist parameters below:
-    vaultAddr = "0x1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a"
-    merkleRoot = "0x1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a"
-    userCap = 2e18
-    totalCap = 50e18
+    vault_addr = "0x1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a"
+    merkle_root = "0x1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a"
+    user_cap = 2e18
+    total_cap = 50e18
 
     # Get deployer account from local keystore. Deployer must be the
     # vault's governance address in order to set its guestlist parameters.
@@ -44,45 +44,45 @@ def main():
     registry = interface.IBadgerRegistry(REGISTRY)
 
     governance = registry.get("governance")
-    proxyAdmin = registry.get("proxyAdminTimelock")
+    proxy_admin = registry.get("proxyAdminTimelock")
 
     assert governance != AddressZero
-    assert proxyAdmin != AddressZero
+    assert proxy_admin != AddressZero
 
     # Deploy guestlist
-    guestlist = deploy_guestlist(dev, proxyAdmin, vaultAddr)
+    guestlist = deploy_guestlist(dev, proxy_admin, vault_addr)
 
     # Set guestlist parameters
-    guestlist.setUserDepositCap(userCap, {"from": dev})
-    assert guestlist.userDepositCap() == userCap
+    guestlist.setUserDepositCap(user_cap, {"from": dev})
+    assert guestlist.userDepositCap() == user_cap
 
-    guestlist.setTotalDepositCap(totalCap, {"from": dev})
-    assert guestlist.totalDepositCap() == totalCap
+    guestlist.setTotalDepositCap(total_cap, {"from": dev})
+    assert guestlist.totalDepositCap() == total_cap
 
-    guestlist.setGuestRoot(merkleRoot, {"from": dev})
-    assert guestlist.guestRoot() == merkleRoot
+    guestlist.setGuestRoot(merkle_root, {"from": dev})
+    assert guestlist.guestRoot() == merkle_root
 
     # Transfers ownership of guestlist to Badger Governance
     guestlist.transferOwnership(governance, {"from": dev})
     assert guestlist.owner() == governance
 
     # Sets guestlist on Vault (Requires dev == Vault's governance)
-    vault = TheVault.at(vaultAddr)
+    vault = TheVault.at(vault_addr)
     vault.setGuestList(guestlist.address, {"from": dev})
 
 
-def deploy_guestlist(dev, proxyAdmin, vaultAddr):
+def deploy_guestlist(dev, proxy_admin, vault_addr):
 
     guestlist_logic = TheGuestlist.at(
         "0x90A768B0bFF5e4e64f220832fc34f727CCE44d64"
     )  # Guestlist Logic
 
     # Initializing arguments
-    args = [vaultAddr]
+    args = [vault_addr]
 
     guestlist_proxy = AdminUpgradeabilityProxy.deploy(
         guestlist_logic,
-        proxyAdmin,
+        proxy_admin,
         guestlist_logic.initialize.encode_input(*args),
         {"from": dev},
     )

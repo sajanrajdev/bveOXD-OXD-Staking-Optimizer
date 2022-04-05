@@ -1,8 +1,8 @@
 import time
 
-from brownie import accounts, network, MyStrategy, TheVault, BadgerRegistry
+from brownie import accounts, interface, network, StrategybveOxdOxdStakingOptimizer, TheVault
 
-from config import WANT, REWARD_TOKEN, LP_COMPONENT, REGISTRY
+from _setup.config import DEPLOYED_STRAT_ADDR, DEPLOYED_VAULT_ADDR, WANT, REGISTRY
 
 from helpers.constants import AddressZero
 
@@ -34,13 +34,13 @@ def main():
     dev = connect_account()
 
     # Add deployed Strategy and Vault contracts here:
-    STRAT = "123"
-    VAULT = "123"
+    STRAT = DEPLOYED_STRAT_ADDR
+    VAULT = DEPLOYED_VAULT_ADDR
 
     assert STRAT != "123"
     assert VAULT != "123"
     
-    strategy = MyStrategy.at(STRAT)
+    strategy = StrategybveOxdOxdStakingOptimizer.at(STRAT)
     vault = TheVault.at(VAULT)
 
     assert strategy.paused() == False
@@ -50,19 +50,17 @@ def main():
     console.print("[blue]Vault: [/blue]", vault.name())
 
     # Get production addresses from registry
-    registry = BadgerRegistry.at(REGISTRY)
+    registry = interface.IBadgerRegistry(REGISTRY)
 
     governance = registry.get("governance")
     guardian = registry.get("guardian")
     keeper = registry.get("keeper")
-    controller = registry.get("controller")
-    badgerTree = registry.get("badgerTree")
+    badger_tree = registry.get("badgerTree")
 
     assert governance != AddressZero
     assert guardian != AddressZero
     assert keeper != AddressZero
-    assert controller != AddressZero
-    assert badgerTree != AddressZero
+    assert badger_tree != AddressZero
 
     # Check production parameters and update any mismatch
     set_parameters(
@@ -72,35 +70,28 @@ def main():
         governance,
         guardian,
         keeper,
-        controller,
     )
 
     # Confirm all productions parameters
     check_parameters(
-        strategy, vault, governance, guardian, keeper, controller, badgerTree
+        strategy, vault, governance, guardian, keeper, badger_tree
     )
 
 
-def set_parameters(dev, strategy, vault, governance, guardian, keeper, controller):
-    # Set Controller (deterministic)
-    if strategy.controller() != controller:
-        strategy.setController(controller, {"from": dev})
-        time.sleep(sleep_between_tx)
-    if vault.controller() != controller:
-        vault.setController(controller, {"from": dev})
-        time.sleep(sleep_between_tx)
-
-    console.print("[green]Controller existing or set at: [/green]", controller)
+def set_parameters(dev, strategy, vault, governance, guardian, keeper):
 
     # Set Fees
-    if strategy.performanceFeeGovernance() != 0:
-        strategy.setPerformanceFeeGovernance(0, {"from": dev})
+    if vault.performanceFeeGovernance() != 0:
+        vault.setPerformanceFeeGovernance(0, {"from": dev})
         time.sleep(sleep_between_tx)
-    if strategy.performanceFeeStrategist() != 0:
-        strategy.setPerformanceFeeStrategist(0, {"from": dev})
+    if vault.performanceFeeStrategist() != 0:
+        vault.setPerformanceFeeStrategist(0, {"from": dev})
         time.sleep(sleep_between_tx)
-    if strategy.withdrawalFee() != 10:
-        strategy.setWithdrawalFee(10, {"from": dev})
+    if vault.withdrawalFee() != 10:
+        vault.setWithdrawalFee(10, {"from": dev})
+        time.sleep(sleep_between_tx)
+    if vault.managementFee() != 0:
+        vault.setPerformanceFeeGovernance(0, {"from": dev})
         time.sleep(sleep_between_tx)
 
     console.print("[green]Fees existing or set at: [/green]", "0, 0, 10")
@@ -127,8 +118,17 @@ def set_parameters(dev, strategy, vault, governance, guardian, keeper, controlle
     if strategy.strategist() != governance:
         strategy.setStrategist(governance, {"from": dev})
         time.sleep(sleep_between_tx)
+    if vault.strategist() != governance:
+        vault.setStrategist(governance, {"from": dev})
+        time.sleep(sleep_between_tx)
 
     console.print("[green]Strategist existing or set at: [/green]", governance)
+
+    if vault.strategy() != strategy.address:
+        vault.setStrategy(strategy.address, {"from": dev})
+        time.sleep(sleep_between_tx)
+
+    console.print("[green]Vault strategy existing or set at: [/green]", strategy.address)
 
     if strategy.governance() != governance:
         strategy.setGovernance(governance, {"from": dev})
@@ -141,32 +141,29 @@ def set_parameters(dev, strategy, vault, governance, guardian, keeper, controlle
 
 
 def check_parameters(
-    strategy, vault, governance, guardian, keeper, controller, badgerTree
+    strategy, vault, governance, guardian, keeper, badger_tree
 ):
     assert strategy.want() == WANT
     assert vault.token() == WANT
-    assert strategy.lpComponent() == LP_COMPONENT
-    assert strategy.reward() == REWARD_TOKEN
 
-    assert strategy.controller() == controller
-    assert vault.controller() == controller
-
-    assert strategy.performanceFeeGovernance() == 0
-    assert strategy.performanceFeeStrategist() == 0
-    assert strategy.withdrawalFee() == 10
+    assert vault.managementFee() == 0
+    assert vault.performanceFeeGovernance() == 0
+    assert vault.performanceFeeStrategist() == 0
+    assert vault.withdrawalFee() == 10
 
     assert strategy.keeper() == keeper
     assert vault.keeper() == keeper
     assert strategy.guardian() == guardian
     assert vault.guardian() == guardian
     assert strategy.strategist() == governance
+    assert vault.strategist() == governance
     assert strategy.governance() == governance
     assert vault.governance() == governance
 
-    # Not all strategies use the badgerTree
+    # Not all strategies use the badger_tree
     try:
         if strategy.badgerTree() != AddressZero:
-            assert strategy.badgerTree() == badgerTree
+            assert strategy.badgerTree() == badger_tree
     except:
         pass
 
