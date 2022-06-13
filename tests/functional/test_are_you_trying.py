@@ -50,8 +50,6 @@ def test_are_you_trying(deployer, vault, strategy, want, governance):
     assert want.balanceOf(strategy) == 0
 
     # Check that rewards have been earned
-    # stakingContract = interface.IMultiRewards(strategy.stakingAddress())
-    print("Ratio:", strategy.getSolidlyPoolRatio(strategy.OXD(), strategy.BVEOXD(), False))
     print("Earned:", strategy.balanceOfRewards())
 
     ## TEST 2: Is the Harvest profitable?
