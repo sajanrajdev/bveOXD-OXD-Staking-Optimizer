@@ -262,18 +262,4 @@ contract StrategybveOxdOxdStakingOptimizer is BaseStrategy {
             address(this)
         );
     }
-
-    /// @dev View function to find the reserves ratio of a certain pool on Solidly
-    function getSolidlyPoolRatio(
-        address tokenA,
-        address tokenB,
-        bool volatile
-    ) public view returns (uint256) {
-        (uint256 reservesA, uint256 reservesB) = SOLIDLY_ROUTER.getReserves(
-            tokenA,
-            tokenB,
-            volatile
-        );
-        return reservesA.mul(MAX_BPS).div(reservesB);
-    }
 }
