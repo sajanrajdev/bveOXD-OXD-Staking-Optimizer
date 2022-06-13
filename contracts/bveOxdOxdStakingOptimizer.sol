@@ -133,34 +133,27 @@ contract StrategybveOxdOxdStakingOptimizer is BaseStrategy {
         // 2. Autocompound all OXD into more want
         uint256 oxdBalance = OXD.balanceOf(address(this));
         if (oxdBalance > 0) {
-            // Get bveOXD/OXD pool's reserves ratio
-            uint256 ratio = getSolidlyPoolRatio(
-                address(OXD),
-                address(BVEOXD),
-                false
-            );
 
             // Estimate the amounts required for liquidity provision
-            uint256 amount_bveOXD = oxdBalance.mul(MAX_BPS).div(MAX_BPS + ratio);
-            uint256 amount_OXD = oxdBalance - amount_bveOXD;
+            uint256 half = oxdBalance.mul(5000).div(MAX_BPS);
 
             // Check if swap quote is within the slippage tolerance from the 
             // required amount, otherwise deposit on bveOXD directly
             (uint256 solidlyQuote,) = IBaseV1Router01(SOLIDLY_ROUTER)
-                .getAmountOut(amount_OXD, address(OXD), address(BVEOXD));
+                .getAmountOut(half, address(OXD), address(BVEOXD));
 
-            if (solidlyQuote > amount_bveOXD.mul(1e18).div(bveOXD.getPricePerFullShare())) {
+            if (solidlyQuote > half.mul(1e18).div(bveOXD.getPricePerFullShare())) {
                 route[] memory routeArray = new route[](1);
                 routeArray[0] = route(address(OXD), address(BVEOXD), false); // Volatile pool
                 SOLIDLY_ROUTER.swapExactTokensForTokens(
-                    amount_OXD,
+                    half,
                     0,
                     routeArray,
                     address(this),
                     block.timestamp
                 );
             } else {
-                bveOXD.deposit(amount_bveOXD);
+                bveOXD.deposit(half);
             }
 
             // Add liquidity to the bveOXD/OXD LP Volatile pool
